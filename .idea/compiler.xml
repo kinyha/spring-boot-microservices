@@ -17,6 +17,7 @@
       <module name="inventory-service" options="-parameters" />
       <module name="order-service" options="-parameters" />
       <module name="product-service" options="-parameters" />
+      <module name="spring-boot-microservices" options="" />
     </option>
   </component>
 </project>
