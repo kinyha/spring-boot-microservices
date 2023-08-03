@@ -3,9 +3,11 @@ package by.bratchykau.orderservice.service;
 import by.bratchykau.orderservice.dto.InventoryResponse;
 import by.bratchykau.orderservice.dto.OrderLineItemsDto;
 import by.bratchykau.orderservice.dto.OrderRequest;
+import by.bratchykau.orderservice.event.OrderPlacedEvent;
 import by.bratchykau.orderservice.model.Order;
 import by.bratchykau.orderservice.model.OrderLineItems;
 import by.bratchykau.orderservice.repostitory.OrderRepository;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -20,10 +22,12 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final WebClient.Builder webClientBuilder;
+    private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
 
-    public OrderService(OrderRepository orderRepository, WebClient.Builder webClientBuilder) {
+    public OrderService(OrderRepository orderRepository, WebClient.Builder webClientBuilder, KafkaTemplate kafkaTemplate) {
         this.orderRepository = orderRepository;
         this.webClientBuilder = webClientBuilder;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     public String placeOrder(OrderRequest orderRequest) {
@@ -54,6 +58,7 @@ public class OrderService {
 
         if (allProductionInStock) {
             orderRepository.save(order);
+            kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(order.getOrderNumber()));
             return "Order placed successfully - " + order.getOrderNumber();
         } else {
             throw new IllegalStateException("Product inventory is not stock, please try again later");
